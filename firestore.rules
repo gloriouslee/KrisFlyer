@@ -1,0 +1,167 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.memberName is string && data.memberName.size() >= 1 && data.memberName.size() <= 60 &&
+        data.membershipNumber is string && data.membershipNumber.size() >= 8 && data.membershipNumber.size() <= 20 &&
+        data.krisFlyerMiles is int && data.krisFlyerMiles >= 0 && data.krisFlyerMiles <= 100000000 &&
+        data.eliteMiles is int && data.eliteMiles >= 0 && data.eliteMiles <= 100000000 &&
+        data.ppsValueSgd is int && data.ppsValueSgd >= 0 && data.ppsValueSgd <= 100000000 &&
+        data.expiringMiles is int && data.expiringMiles >= 0 && data.expiringMiles <= 100000000 &&
+        data.expiringDateLabel is string && data.expiringDateLabel.size() >= 1 && data.expiringDateLabel.size() <= 30 &&
+        data.languageCode in ['en', 'vi'] &&
+        data.darkMode in ['SYSTEM', 'DARK', 'LIGHT'] &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.titleVi is string && data.titleVi.size() >= 1 && data.titleVi.size() <= 120 &&
+        data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 120 &&
+        data.subtitleVi is string && data.subtitleVi.size() >= 1 && data.subtitleVi.size() <= 180 &&
+        data.subtitleEn is string && data.subtitleEn.size() >= 1 && data.subtitleEn.size() <= 180 &&
+        data.category in ['FLIGHT', 'PARTNER', 'REDEMPTION', 'BONUS', 'REFUND'] &&
+        data.krisFlyerMilesDelta is int && data.krisFlyerMilesDelta >= -50000000 && data.krisFlyerMilesDelta <= 50000000 &&
+        data.eliteMilesDelta is int && data.eliteMilesDelta >= 0 && data.eliteMilesDelta <= 50000000 &&
+        data.ppsValueDeltaSgd is int && data.ppsValueDeltaSgd >= 0 && data.ppsValueDeltaSgd <= 50000000 &&
+        data.badgeCode is string && data.badgeCode.size() >= 1 && data.badgeCode.size() <= 16 &&
+        data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidBooking(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.pnr is string && data.pnr.size() >= 4 && data.pnr.size() <= 10 &&
+        data.flightNumber is string && data.flightNumber.size() >= 3 && data.flightNumber.size() <= 12 &&
+        data.originCode is string && data.originCode.size() >= 3 && data.originCode.size() <= 5 &&
+        data.destinationCode is string && data.destinationCode.size() >= 3 && data.destinationCode.size() <= 5 &&
+        data.originCity is string && data.originCity.size() >= 1 && data.originCity.size() <= 80 &&
+        data.destinationCity is string && data.destinationCity.size() >= 1 && data.destinationCity.size() <= 80 &&
+        data.cabinLabel is string && data.cabinLabel.size() >= 1 && data.cabinLabel.size() <= 60 &&
+        data.awardTypeLabel is string && data.awardTypeLabel.size() >= 1 && data.awardTypeLabel.size() <= 60 &&
+        data.milesCost is int && data.milesCost >= 0 && data.milesCost <= 10000000 &&
+        data.taxesSgd is int && data.taxesSgd >= 0 && data.taxesSgd <= 50000 &&
+        data.seatNumber is string && data.seatNumber.size() >= 1 && data.seatNumber.size() <= 10 &&
+        data.departureDateLabel is string && data.departureDateLabel.size() >= 1 && data.departureDateLabel.size() <= 30 &&
+        data.departureTimeLabel is string && data.departureTimeLabel.size() >= 1 && data.departureTimeLabel.size() <= 20 &&
+        data.gate is string && data.gate.size() >= 1 && data.gate.size() <= 10 &&
+        data.status in ['CONFIRMED', 'WAITLIST', 'CHECKED_IN', 'COMPLETED', 'CANCELLED'] &&
+        data.roundTrip is bool &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isValidId(userId) &&
+        isOwner(userId) &&
+        incoming().keys().hasAll([
+          'userId', 'memberName', 'membershipNumber', 'krisFlyerMiles',
+          'eliteMiles', 'ppsValueSgd', 'expiringMiles', 'expiringDateLabel',
+          'languageCode', 'darkMode', 'createdAt', 'updatedAt'
+        ]) &&
+        incoming().keys().hasOnly([
+          'userId', 'memberName', 'membershipNumber', 'krisFlyerMiles',
+          'eliteMiles', 'ppsValueSgd', 'expiringMiles', 'expiringDateLabel',
+          'languageCode', 'darkMode', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidProfile(incoming(), userId);
+
+      allow update: if isValidId(userId) &&
+        isOwner(userId) &&
+        isValidProfile(incoming(), userId) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'memberName', 'krisFlyerMiles', 'eliteMiles', 'ppsValueSgd',
+          'expiringMiles', 'expiringDateLabel', 'languageCode', 'darkMode', 'updatedAt'
+        ]);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /transactions/{txId} {
+        allow get: if isValidId(userId) && isValidId(txId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(txId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll([
+            'userId', 'titleVi', 'titleEn', 'subtitleVi', 'subtitleEn',
+            'category', 'krisFlyerMilesDelta', 'eliteMilesDelta',
+            'ppsValueDeltaSgd', 'badgeCode', 'createdAt'
+          ]) &&
+          incoming().keys().hasOnly([
+            'userId', 'titleVi', 'titleEn', 'subtitleVi', 'subtitleEn',
+            'category', 'krisFlyerMilesDelta', 'eliteMilesDelta',
+            'ppsValueDeltaSgd', 'badgeCode', 'createdAt'
+          ]) &&
+          isValidTransaction(incoming(), userId);
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(txId) && isOwner(userId);
+      }
+
+      match /bookings/{bookingId} {
+        allow get: if isValidId(userId) && isValidId(bookingId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(bookingId) &&
+          isOwner(userId) &&
+          incoming().keys().hasAll([
+            'userId', 'pnr', 'flightNumber', 'originCode', 'destinationCode',
+            'originCity', 'destinationCity', 'cabinLabel', 'awardTypeLabel',
+            'milesCost', 'taxesSgd', 'seatNumber', 'departureDateLabel',
+            'departureTimeLabel', 'gate', 'status', 'roundTrip',
+            'createdAt', 'updatedAt'
+          ]) &&
+          incoming().keys().hasOnly([
+            'userId', 'pnr', 'flightNumber', 'originCode', 'destinationCode',
+            'originCity', 'destinationCity', 'cabinLabel', 'awardTypeLabel',
+            'milesCost', 'taxesSgd', 'seatNumber', 'departureDateLabel',
+            'departureTimeLabel', 'gate', 'status', 'roundTrip',
+            'createdAt', 'updatedAt'
+          ]) &&
+          isValidBooking(incoming(), userId);
+
+        allow update: if isValidId(userId) && isValidId(bookingId) &&
+          isOwner(userId) &&
+          isValidBooking(incoming(), userId) &&
+          !(existing().status in ['COMPLETED', 'CANCELLED']) &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(bookingId) && isOwner(userId);
+      }
+    }
+  }
+}

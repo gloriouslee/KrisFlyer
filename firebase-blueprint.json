@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "KrisFlyerProfile": {
+      "title": "KrisFlyerProfile",
+      "description": "Authenticated user's KrisFlyer simulator profile, balances, and preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the profile owner." },
+        "memberName": { "type": "string", "description": "Display name embossed on the membership card." },
+        "membershipNumber": { "type": "string", "description": "Simulated 10-digit KrisFlyer number." },
+        "krisFlyerMiles": { "type": "integer", "description": "Available KrisFlyer miles balance." },
+        "eliteMiles": { "type": "integer", "description": "Rolling 12-month Elite Miles balance." },
+        "ppsValueSgd": { "type": "integer", "description": "Rolling 12-month PPS Value in SGD." },
+        "expiringMiles": { "type": "integer", "description": "Simulated miles expiring soon." },
+        "expiringDateLabel": { "type": "string", "description": "Label for expiration date." },
+        "languageCode": { "type": "string", "enum": ["en", "vi"], "description": "UI language preference." },
+        "darkMode": { "type": "string", "enum": ["SYSTEM", "DARK", "LIGHT"], "description": "Theme override." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on last update." }
+      },
+      "required": [
+        "userId",
+        "memberName",
+        "membershipNumber",
+        "krisFlyerMiles",
+        "eliteMiles",
+        "ppsValueSgd",
+        "expiringMiles",
+        "expiringDateLabel",
+        "languageCode",
+        "darkMode",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MileageTransaction": {
+      "title": "MileageTransaction",
+      "description": "Immutable simulated mileage accrual or redemption ledger entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "titleVi": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "subtitleVi": { "type": "string" },
+        "subtitleEn": { "type": "string" },
+        "category": { "type": "string", "enum": ["FLIGHT", "PARTNER", "REDEMPTION", "BONUS", "REFUND"] },
+        "krisFlyerMilesDelta": { "type": "integer" },
+        "eliteMilesDelta": { "type": "integer" },
+        "ppsValueDeltaSgd": { "type": "integer" },
+        "badgeCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "titleVi",
+        "titleEn",
+        "subtitleVi",
+        "subtitleEn",
+        "category",
+        "krisFlyerMilesDelta",
+        "eliteMilesDelta",
+        "ppsValueDeltaSgd",
+        "badgeCode",
+        "createdAt"
+      ]
+    },
+    "AwardBooking": {
+      "title": "AwardBooking",
+      "description": "Simulated award flight booking and digital boarding pass.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "pnr": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "originCode": { "type": "string" },
+        "destinationCode": { "type": "string" },
+        "originCity": { "type": "string" },
+        "destinationCity": { "type": "string" },
+        "cabinLabel": { "type": "string" },
+        "awardTypeLabel": { "type": "string" },
+        "milesCost": { "type": "integer" },
+        "taxesSgd": { "type": "integer" },
+        "seatNumber": { "type": "string" },
+        "departureDateLabel": { "type": "string" },
+        "departureTimeLabel": { "type": "string" },
+        "gate": { "type": "string" },
+        "status": { "type": "string", "enum": ["CONFIRMED", "WAITLIST", "CHECKED_IN", "COMPLETED", "CANCELLED"] },
+        "roundTrip": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "pnr",
+        "flightNumber",
+        "originCode",
+        "destinationCode",
+        "originCity",
+        "destinationCity",
+        "cabinLabel",
+        "awardTypeLabel",
+        "milesCost",
+        "taxesSgd",
+        "seatNumber",
+        "departureDateLabel",
+        "departureTimeLabel",
+        "gate",
+        "status",
+        "roundTrip",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/KrisFlyerProfile" },
+      "description": "User-scoped KrisFlyer simulator profile document."
+    },
+    "/users/{userId}/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/MileageTransaction" },
+      "description": "User-scoped mileage statement transactions."
+    },
+    "/users/{userId}/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/AwardBooking" },
+      "description": "User-scoped simulated award bookings and boarding passes."
+    }
+  }
+}

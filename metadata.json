@@ -1,0 +1,6 @@
+{
+  "name": "KrisFlyer Sim",
+  "description": "Singapore Airlines KrisFlyer loyalty program simulator with flight miles calculator, tier tracker, award chart redemption, and boarding passes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
